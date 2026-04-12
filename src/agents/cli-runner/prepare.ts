@@ -15,13 +15,18 @@ import {
 } from "../bootstrap-files.js";
 import { resolveCliAuthEpoch } from "../cli-auth-epoch.js";
 import { resolveCliBackendConfig } from "../cli-backends.js";
-import { hashCliSessionText, resolveCliSessionReuse } from "../cli-session.js";
+import {
+  hashCliSessionText,
+  normalizeExtraSystemPromptForHash,
+  resolveCliSessionReuse,
+} from "../cli-session.js";
 import { resolveHeartbeatPromptForSystemPrompt } from "../heartbeat-system-prompt.js";
 import {
   resolveBootstrapMaxChars,
   resolveBootstrapPromptTruncationWarningMode,
   resolveBootstrapTotalMaxChars,
 } from "../pi-embedded-helpers.js";
+import { resolveSkillsPromptForRun } from "../skills.js";
 import { resolveSystemPromptOverride } from "../system-prompt-override.js";
 import { buildSystemPromptReport } from "../system-prompt-report.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
@@ -74,7 +79,13 @@ export async function prepareCliRunContext(
     authProfileId: params.authProfileId,
   });
   const extraSystemPrompt = params.extraSystemPrompt?.trim() ?? "";
-  const extraSystemPromptHash = hashCliSessionText(extraSystemPrompt);
+  // Hash a normalized form so transport-volatile sections (the inbound-meta
+  // block in particular) do not invalidate the cached CLI session on every
+  // cross-channel turn. The unnormalized prompt is still sent to the CLI
+  // subprocess below.
+  const extraSystemPromptHash = hashCliSessionText(
+    normalizeExtraSystemPromptForHash(extraSystemPrompt),
+  );
   const modelId = (params.model ?? "default").trim() || "default";
   const normalizedModel = normalizeCliModel(modelId, backendResolved.config);
   const modelDisplay = `${params.provider}/${modelId}`;
@@ -162,6 +173,12 @@ export async function prepareCliRunContext(
     cwd: process.cwd(),
     moduleUrl: import.meta.url,
   });
+  const skillsPrompt = resolveSkillsPromptForRun({
+    skillsSnapshot: params.skillsSnapshot,
+    workspaceDir,
+    config: params.config,
+    agentId: sessionAgentId,
+  });
   const systemPrompt =
     resolveSystemPromptOverride({
       config: params.config,
@@ -175,6 +192,7 @@ export async function prepareCliRunContext(
       ownerNumbers: params.ownerNumbers,
       heartbeatPrompt,
       docsPath: docsPath ?? undefined,
+      skillsPrompt,
       tools: [],
       contextFiles,
       modelDisplay,
@@ -199,7 +217,7 @@ export async function prepareCliRunContext(
     systemPrompt,
     bootstrapFiles,
     injectedFiles: contextFiles,
-    skillsPrompt: "",
+    skillsPrompt,
     tools: [],
   });
 
