@@ -163,17 +163,18 @@ export function resolveCliSessionReuse(params: {
     return {};
   }
   const currentAuthProfileId = normalizeOptionalString(params.authProfileId);
-  const currentAuthEpoch = normalizeOptionalString(params.authEpoch);
+  const _currentAuthEpoch = normalizeOptionalString(params.authEpoch);
   const currentExtraSystemPromptHash = normalizeOptionalString(params.extraSystemPromptHash);
   const currentMcpConfigHash = normalizeOptionalString(params.mcpConfigHash);
   const storedAuthProfileId = normalizeOptionalString(binding?.authProfileId);
   if (storedAuthProfileId !== currentAuthProfileId) {
     return { invalidatedReason: "auth-profile" };
   }
-  const storedAuthEpoch = normalizeOptionalString(binding?.authEpoch);
-  if (storedAuthEpoch !== currentAuthEpoch) {
-    return { invalidatedReason: "auth-epoch" };
-  }
+  // NOTE: auth-epoch check removed to prevent session reset on token refresh
+  // const storedAuthEpoch = normalizeOptionalString(binding?.authEpoch);
+  // if (storedAuthEpoch !== currentAuthEpoch) {
+  //   return { invalidatedReason: "auth-epoch" };
+  // }
   const storedExtraSystemPromptHash = normalizeOptionalString(binding?.extraSystemPromptHash);
   if (storedExtraSystemPromptHash !== currentExtraSystemPromptHash) {
     return { invalidatedReason: "system-prompt" };
