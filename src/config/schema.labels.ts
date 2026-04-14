@@ -77,6 +77,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "gateway.controlUi.enabled": "Control UI Enabled",
   "gateway.mcpLoopback": "Gateway MCP Loopback",
   "gateway.mcpLoopback.port": "Gateway MCP Loopback Port",
+  "gateway.mcpLoopback.token": "Gateway MCP Loopback Token",
   "gateway.auth": "Gateway Auth",
   "gateway.auth.mode": "Gateway Auth Mode",
   "gateway.auth.allowTailscale": "Gateway Auth Allow Tailscale Identity",

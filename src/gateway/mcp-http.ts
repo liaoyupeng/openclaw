@@ -23,11 +23,14 @@ export {
   getActiveMcpLoopbackRuntime,
 } from "./mcp-http.loopback-runtime.js";
 
-export async function startMcpLoopbackServer(port = 0): Promise<{
+export async function startMcpLoopbackServer(
+  port = 0,
+  staticToken?: string,
+): Promise<{
   port: number;
   close: () => Promise<void>;
 }> {
-  const token = crypto.randomBytes(32).toString("hex");
+  const token = staticToken || crypto.randomBytes(32).toString("hex");
   const toolCache = new McpLoopbackToolCache();
 
   const httpServer = createHttpServer((req, res) => {

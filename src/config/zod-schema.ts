@@ -690,6 +690,7 @@ export const OpenClawSchema = z
         mcpLoopback: z
           .object({
             port: z.number().int().min(0).max(65535).optional(),
+            token: z.string().min(1).optional(),
           })
           .strict()
           .optional(),

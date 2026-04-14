@@ -109,6 +109,13 @@ export type GatewayMcpLoopbackConfig = {
    * to keep MCP URLs stable across gateway restarts.
    */
   port?: number;
+  /**
+   * Static bearer token for the MCP loopback server.
+   * Leave unset to generate a random token on each gateway start.
+   * Set a fixed token to allow external scripts to authenticate without
+   * discovering the token from running processes.
+   */
+  token?: string;
 };
 
 export type GatewayAuthMode = "none" | "token" | "password" | "trusted-proxy";

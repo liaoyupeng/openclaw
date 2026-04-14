@@ -79,6 +79,8 @@ export const FIELD_HELP: Record<string, string> = {
     "Local MCP loopback server settings used to expose OpenClaw tools to CLI backends over HTTP. Leave unset for ephemeral ports, or set a fixed port when session-bound MCP URLs must stay stable across gateway restarts.",
   "gateway.mcpLoopback.port":
     "TCP port for the local MCP loopback server. Use 0 or leave unset for an ephemeral port, or set a fixed loopback port to keep MCP URLs stable across restarts and improve CLI session reuse.",
+  "gateway.mcpLoopback.token":
+    "Static bearer token for the MCP loopback server. Leave unset to generate a random token on each gateway start. Set a fixed token to allow external scripts to authenticate without discovering the token from running processes.",
   "gateway.auth":
     "Authentication policy for gateway HTTP/WebSocket access including mode, credentials, trusted-proxy behavior, and rate limiting. Keep auth enabled for every non-loopback deployment.",
   "gateway.auth.mode":

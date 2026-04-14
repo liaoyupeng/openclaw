@@ -976,7 +976,11 @@ export async function startGatewayServer(
   try {
     try {
       const configuredMcpLoopbackPort = cfgAtStart.gateway?.mcpLoopback?.port ?? 0;
-      mcpServer = await startMcpLoopbackServer(configuredMcpLoopbackPort);
+      const configuredMcpLoopbackToken = cfgAtStart.gateway?.mcpLoopback?.token;
+      mcpServer = await startMcpLoopbackServer(
+        configuredMcpLoopbackPort,
+        configuredMcpLoopbackToken,
+      );
       log.info(`MCP loopback server listening on http://127.0.0.1:${mcpServer.port}/mcp`);
     } catch (error) {
       const portHint = configuredMcpLoopbackPort
