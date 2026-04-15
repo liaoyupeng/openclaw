@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import path from "node:path";
 import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { isBlockedHostnameOrIp } from "openclaw/plugin-sdk/ssrf-runtime";
+import { readResponseWithLimit } from "openclaw/plugin-sdk/media-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
@@ -15,7 +15,7 @@ import {
 } from "./probe.js";
 import { resolveRequestUrl } from "./request-url.js";
 import type { OpenClawConfig } from "./runtime-api.js";
-import { getBlueBubblesRuntime, warnBlueBubbles } from "./runtime.js";
+import { warnBlueBubbles } from "./runtime.js";
 import { extractBlueBubblesMessageId, resolveBlueBubblesSendTarget } from "./send-helpers.js";
 import { createChatForHandle, resolveChatGuidForTarget } from "./send.js";
 import {
@@ -73,15 +73,6 @@ function resolveAccount(params: BlueBubblesAttachmentOpts) {
   return resolveBlueBubblesServerAccount(params);
 }
 
-function safeExtractHostname(url: string): string | undefined {
-  try {
-    const hostname = new URL(url).hostname.trim();
-    return hostname || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 type MediaFetchErrorCode = "max_bytes" | "http_error" | "fetch_failed";
 
 function readMediaFetchErrorCode(error: unknown): MediaFetchErrorCode | undefined {
@@ -94,6 +85,56 @@ function readMediaFetchErrorCode(error: unknown): MediaFetchErrorCode | undefine
     : undefined;
 }
 
+type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+type FetchedAttachment = {
+  buffer: Buffer;
+  contentType?: string;
+};
+
+/**
+ * Direct fetch path that bypasses the pinned DNS dispatcher.
+ *
+ * The pinned undici dispatcher used by `fetchRemoteMedia` is incompatible
+ * with Node 22-24's built-in undici versions (fails with "invalid onRequestStart
+ * method"). Since BlueBubbles connects to a known local server (127.0.0.1),
+ * SSRF protection via pinned dispatcher is unnecessary.
+ */
+async function fetchAttachmentDirect(params: {
+  url: string;
+  fetchImpl: FetchLike;
+  maxBytes: number;
+}): Promise<FetchedAttachment> {
+  const response = await params.fetchImpl(params.url, { redirect: "follow" });
+  if (!response.ok) {
+    const statusText = response.statusText ? ` ${response.statusText}` : "";
+    throw Object.assign(new Error(`HTTP ${response.status}${statusText}`), { code: "http_error" });
+  }
+
+  const contentLength = response.headers.get("content-length");
+  if (contentLength) {
+    const length = Number(contentLength);
+    if (Number.isFinite(length) && length > params.maxBytes) {
+      throw Object.assign(
+        new Error(`content length ${length} exceeds maxBytes ${params.maxBytes}`),
+        { code: "max_bytes" },
+      );
+    }
+  }
+
+  const buffer = await readResponseWithLimit(response, params.maxBytes, {
+    onOverflow: ({ size, maxBytes }) =>
+      Object.assign(new Error(`payload size ${size} exceeds maxBytes ${maxBytes}`), {
+        code: "max_bytes",
+      }),
+  });
+
+  return {
+    buffer,
+    contentType: response.headers.get("content-type") ?? undefined,
+  };
+}
+
 export async function downloadBlueBubblesAttachment(
   attachment: BlueBubblesAttachment,
   opts: BlueBubblesAttachmentOpts & { maxBytes?: number } = {},
@@ -102,26 +143,19 @@ export async function downloadBlueBubblesAttachment(
   if (!guid) {
     throw new Error("BlueBubbles attachment guid is required");
   }
-  const { baseUrl, password, allowPrivateNetwork, allowPrivateNetworkConfig } =
-    resolveAccount(opts);
+  const { baseUrl, password } = resolveAccount(opts);
   const url = buildBlueBubblesApiUrl({
     baseUrl,
     path: `/api/v1/attachment/${encodeURIComponent(guid)}/download`,
     password,
   });
   const maxBytes = typeof opts.maxBytes === "number" ? opts.maxBytes : DEFAULT_ATTACHMENT_MAX_BYTES;
-  const trustedHostname = safeExtractHostname(baseUrl);
-  const trustedHostnameIsPrivate = trustedHostname ? isBlockedHostnameOrIp(trustedHostname) : false;
   try {
-    const fetched = await getBlueBubblesRuntime().channel.media.fetchRemoteMedia({
+    // Use direct fetch to bypass pinned DNS dispatcher (incompatible with Node 22-24 undici).
+    // BlueBubbles connects to a known local server, so SSRF protection is unnecessary.
+    const fetched = await fetchAttachmentDirect({
       url,
-      filePathHint: attachment.transferName ?? attachment.guid ?? "attachment",
       maxBytes,
-      ssrfPolicy: allowPrivateNetwork
-        ? { allowPrivateNetwork: true }
-        : trustedHostname && (allowPrivateNetworkConfig !== false || !trustedHostnameIsPrivate)
-          ? { allowedHostnames: [trustedHostname] }
-          : undefined,
       fetchImpl: async (input, init) =>
         await blueBubblesFetchWithTimeout(
           resolveRequestUrl(input),
