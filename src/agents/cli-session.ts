@@ -145,7 +145,7 @@ export function resolveCliSessionReuse(params: {
     return { sessionId };
   }
   const currentAuthProfileId = normalizeOptionalString(params.authProfileId);
-  const currentAuthEpoch = normalizeOptionalString(params.authEpoch);
+  const _currentAuthEpoch = normalizeOptionalString(params.authEpoch);
   const currentExtraSystemPromptHash = normalizeOptionalString(params.extraSystemPromptHash);
   const currentMcpConfigHash = normalizeOptionalString(params.mcpConfigHash);
   const currentMcpResumeHash = normalizeOptionalString(params.mcpResumeHash);
@@ -153,13 +153,18 @@ export function resolveCliSessionReuse(params: {
   if (storedAuthProfileId !== currentAuthProfileId) {
     return { invalidatedReason: "auth-profile" };
   }
-  const storedAuthEpoch = normalizeOptionalString(binding?.authEpoch);
-  if (
-    binding?.authEpochVersion === params.authEpochVersion &&
-    storedAuthEpoch !== currentAuthEpoch
-  ) {
-    return { invalidatedReason: "auth-epoch" };
-  }
+  // NOTE: auth-epoch check disabled to prevent CLI session reset on every
+  // OAuth token refresh (Anthropic/OpenAI Codex OAuth tokens rotate ~hourly,
+  // each rotation bumps the epoch and would otherwise cold-start the session
+  // and lose conversation context). Upstream's authEpochVersion gate only
+  // skips on schema migration, not on routine token refresh.
+  // const storedAuthEpoch = normalizeOptionalString(binding?.authEpoch);
+  // if (
+  //   binding?.authEpochVersion === params.authEpochVersion &&
+  //   storedAuthEpoch !== _currentAuthEpoch
+  // ) {
+  //   return { invalidatedReason: "auth-epoch" };
+  // }
   const storedExtraSystemPromptHash = normalizeOptionalString(binding?.extraSystemPromptHash);
   if (storedExtraSystemPromptHash !== currentExtraSystemPromptHash) {
     return { invalidatedReason: "system-prompt" };
