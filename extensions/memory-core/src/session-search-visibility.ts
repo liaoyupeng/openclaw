@@ -54,6 +54,12 @@ export async function filterMemorySearchHitsBySessionVisibility(params: {
         : {}),
     });
     if (keys.length === 0) {
+      // External transcripts (e.g. Claude Code's ~/.claude/projects/*.jsonl)
+      // are indexed by memory-core but never registered in OpenClaw's session
+      // store, so resolveTranscriptStemToSessionKeys returns []. Treat
+      // unresolvable hits as best-effort visible to match the CLI memory
+      // search path, which bypasses this filter entirely.
+      next.push(hit);
       continue;
     }
     const allowed = keys.some((key) => guard.check(key).allowed);
