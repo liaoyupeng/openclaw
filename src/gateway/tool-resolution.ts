@@ -21,7 +21,7 @@ import {
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logWarn } from "../logger.js";
-import { getPluginToolMeta } from "../plugins/tools.js";
+import { ensureStandalonePluginToolRegistryLoaded, getPluginToolMeta } from "../plugins/tools.js";
 import { DEFAULT_GATEWAY_HTTP_TOOL_DENY } from "../security/dangerous-tools.js";
 
 type GatewayScopedToolSurface = "http" | "loopback";
@@ -79,6 +79,19 @@ export function resolveGatewayScopedTools(params: {
     params.cfg,
     agentId ?? resolveDefaultAgentId(params.cfg),
   );
+
+  // Plugin tools (browser, memory_*, etc.) are exposed via the standalone
+  // plugin tool runtime registry. The gateway pins the channel registry at
+  // startup but does not register a workspace dir, so a request from a CLI
+  // runner whose agent resolves to a specific workspaceDir would fail the
+  // workspace-match check inside getLoadedRuntimePluginRegistry and return no
+  // plugin tools. Force the standalone registry to be loaded for this
+  // request's workspaceDir before resolving.
+  if (!params.disablePluginTools) {
+    ensureStandalonePluginToolRegistryLoaded({
+      context: { config: params.cfg, workspaceDir },
+    });
+  }
 
   const allTools = createOpenClawTools({
     agentSessionKey: params.sessionKey,

@@ -608,11 +608,19 @@ function resolvePluginToolRegistry(params: {
   loadOptions: PluginLoadOptions;
   onlyPluginIds?: readonly string[];
 }) {
+  // Don't pass requiredPluginIds when looking up the gateway-pinned channel
+  // registry: resolvePluginToolRuntimePluginIds returns every bundled plugin
+  // that declares a tool contract, but the gateway only loads plugins the
+  // user actually has enabled. Requiring the registry to contain the entire
+  // declared set rejects an otherwise-valid registry whenever the user has
+  // even one bundled tool plugin disabled (memory-wiki, voice-call, etc.).
+  // Per-plugin-id filtering still happens inside the registry.tools iteration
+  // in resolvePluginTools, so disabled plugins simply contribute no tools
+  // rather than blocking the entire lookup.
   const lookup = {
     env: params.loadOptions.env,
     loadOptions: params.loadOptions,
     workspaceDir: params.loadOptions.workspaceDir,
-    requiredPluginIds: params.onlyPluginIds,
   };
   return (
     getLoadedRuntimePluginRegistry({
@@ -622,7 +630,6 @@ function resolvePluginToolRegistry(params: {
     getLoadedRuntimePluginRegistry({
       env: lookup.env,
       workspaceDir: lookup.workspaceDir,
-      requiredPluginIds: lookup.requiredPluginIds,
       surface: "active",
     })
   );
