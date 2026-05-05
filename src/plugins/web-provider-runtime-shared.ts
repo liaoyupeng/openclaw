@@ -217,10 +217,19 @@ export function resolveRuntimeWebProviders<TEntry>(
     requiredPluginIds: params.onlyPluginIds,
   });
   if (runtimeRegistry) {
-    return deps.mapRegistryProviders({
+    const mapped = deps.mapRegistryProviders({
       registry: runtimeRegistry,
       onlyPluginIds: params.onlyPluginIds,
     });
+    // If the live runtime registry yields providers, use them. If the caller scoped
+    // the lookup to specific plugin ids, an empty result is authoritative. Only when
+    // an unscoped lookup finds no providers do we fall through to a fresh plugin
+    // load — covers the case where a provider plugin (e.g. an npm-installed web
+    // search provider with manifest.activation.onStartup=false) wasn't materialized
+    // in the gateway's startup registry but is still configured and available.
+    if (mapped.length > 0 || params.onlyPluginIds !== undefined) {
+      return mapped;
+    }
   }
   return resolvePluginWebProviders(params, deps);
 }

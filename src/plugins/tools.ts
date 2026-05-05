@@ -13,6 +13,7 @@ import type { PluginManifestRecord } from "./manifest-registry.js";
 import { hasManifestToolAvailability } from "./manifest-tool-availability.js";
 import type { PluginMetadataManifestView } from "./plugin-metadata-snapshot.types.js";
 import type { PluginRegistry, PluginToolRegistration } from "./registry-types.js";
+import { getActivePluginRegistry, getActivePluginRuntimeSubagentMode } from "./runtime.js";
 import {
   buildPluginRuntimeLoadOptions,
   resolvePluginRuntimeLoadContext,
@@ -750,7 +751,14 @@ function resolvePluginToolRegistry(params: {
     return activeRegistry;
   }
 
-  const forceStandaloneLoad = Boolean(channelRegistry || activeRegistry);
+  // When the gateway has installed a "gateway-bindable" registry (with all configured
+  // channel/provider plugins like brave, anthropic, etc.), do not let a tool-discovery
+  // standalone load replace it with a narrower bundled-only registry — that wipes out
+  // web-search/web-fetch providers from the runtime registry the agent later queries.
+  const preserveGatewayBindable =
+    getActivePluginRuntimeSubagentMode() === "gateway-bindable" &&
+    Boolean(getActivePluginRegistry());
+  const forceStandaloneLoad = Boolean(channelRegistry || activeRegistry || preserveGatewayBindable);
   const standaloneRegistry = ensureStandaloneRuntimePluginRegistryLoaded({
     surface: "active",
     forceLoad: forceStandaloneLoad,
