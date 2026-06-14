@@ -192,12 +192,18 @@ export function resolveCliSessionReuse(params: {
       return { invalidatedReason: "auth-profile" };
     }
   }
-  if (
-    binding?.authEpochVersion === params.authEpochVersion &&
-    storedAuthEpoch !== currentAuthEpoch
-  ) {
-    return { invalidatedReason: "auth-epoch" };
-  }
+  // NOTE: auth-epoch invalidation disabled to prevent CLI session reset on every
+  // OAuth token refresh (Anthropic/OpenAI Codex OAuth tokens rotate ~hourly, each
+  // rotation bumps the epoch and would otherwise cold-start the session and lose
+  // conversation context). Upstream's authEpochVersion gate only skips on schema
+  // migration, not on routine token refresh. authProfileId, system-prompt, cwd and
+  // mcp hashes still gate reuse, so genuine identity/environment changes invalidate.
+  // if (
+  //   binding?.authEpochVersion === params.authEpochVersion &&
+  //   storedAuthEpoch !== currentAuthEpoch
+  // ) {
+  //   return { invalidatedReason: "auth-epoch" };
+  // }
   const storedExtraSystemPromptHash = normalizeOptionalString(binding?.extraSystemPromptHash);
   if (storedExtraSystemPromptHash !== currentExtraSystemPromptHash) {
     return { invalidatedReason: "system-prompt" };

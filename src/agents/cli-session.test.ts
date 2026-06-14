@@ -143,6 +143,10 @@ describe("cli-session helpers", () => {
         mcpConfigHash: "mcp-a",
       }),
     ).toEqual({ invalidatedReason: "auth-profile" });
+    // auth-epoch check is intentionally disabled (yupeng-fix port): OAuth token
+    // refreshes bump the epoch every ~hour and would otherwise reset every CLI
+    // session and lose conversation context. Only auth-profile / prompt / mcp
+    // changes invalidate now.
     expect(
       resolveCliSessionReuse({
         binding,
@@ -152,7 +156,7 @@ describe("cli-session helpers", () => {
         extraSystemPromptHash: "prompt-a",
         mcpConfigHash: "mcp-a",
       }),
-    ).toEqual({ invalidatedReason: "auth-epoch" });
+    ).toEqual({ sessionId: "cli-session-1" });
     expect(
       resolveCliSessionReuse({
         binding,
