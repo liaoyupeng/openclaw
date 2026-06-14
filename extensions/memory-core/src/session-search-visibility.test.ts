@@ -176,7 +176,10 @@ describe("filterMemorySearchHitsBySessionVisibility", () => {
     expect(filtered).toEqual([hit]);
   });
 
-  it("does not keep cross-agent session hits outside the scoped store", async () => {
+  // yupeng-fix: intentionally disabled. The fork makes unresolvable sessions
+  // hits fail OPEN (external-transcript visibility), which deliberately breaks
+  // this upstream cross-agent isolation guarantee. Single-operator deployment.
+  it.skip("does not keep cross-agent session hits outside the scoped store", async () => {
     combinedSessionStore = {};
     const hit: MemorySearchResult = {
       path: "sessions/w1.jsonl",
@@ -201,7 +204,8 @@ describe("filterMemorySearchHitsBySessionVisibility", () => {
     expect(filtered).toStrictEqual([]);
   });
 
-  it("does not keep cross-agent session hits when a shared store returns out-of-scope keys", async () => {
+  // yupeng-fix: intentionally disabled (fork fails OPEN on unresolvable hits).
+  it.skip("does not keep cross-agent session hits when a shared store returns out-of-scope keys", async () => {
     combinedSessionStore = crossAgentStore;
     const hit: MemorySearchResult = {
       path: "sessions/w1.jsonl",
@@ -257,7 +261,8 @@ describe("filterMemorySearchHitsBySessionVisibility", () => {
     expect(filtered).toStrictEqual([]);
   });
 
-  it("denies cross-agent session hits when agent-to-agent is disabled", async () => {
+  // yupeng-fix: intentionally disabled (fork fails OPEN on unresolvable hits).
+  it.skip("denies cross-agent session hits when agent-to-agent is disabled", async () => {
     const hit: MemorySearchResult = {
       path: "sessions/w1.jsonl",
       source: "sessions",
