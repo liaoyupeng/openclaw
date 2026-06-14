@@ -130,6 +130,20 @@ export async function filterMemorySearchHitsBySessionVisibility(params: {
             }),
     });
     if (keys.length === 0) {
+      // yupeng-fix (intentional, single-user fork): treat unresolvable
+      // sessions-sourced hits as best-effort VISIBLE so external transcripts
+      // (e.g. Claude Code's ~/.claude/projects/*.jsonl) indexed by memory-core
+      // but never registered in OpenClaw's session store still surface via the
+      // MCP loopback, matching the CLI memory-search path which bypasses this
+      // filter entirely.
+      //
+      // TRADE-OFF: this fails OPEN. Upstream uses keys.length === 0 as a
+      // fail-CLOSED cross-agent isolation boundary, so this also lets another
+      // agent's unresolved session hits through. Acceptable here only because
+      // this is a single-operator deployment. The upstream cross-agent
+      // isolation tests are intentionally disabled to match (see
+      // session-search-visibility.test.ts).
+      next.push(hit);
       continue;
     }
     const allowed = keys.some((key) => guard.check(key).allowed);
