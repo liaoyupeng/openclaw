@@ -108,6 +108,14 @@ export function sliceMimeSniffBuffer(buffer: Buffer): Buffer {
   return buffer.subarray(0, FILE_TYPE_SNIFF_MAX_BYTES);
 }
 
+// `file-type` v22 sniffs SVG markup as `application/xml`/`text/xml` (older
+// versions returned undefined). Detect an `<svg>` root in the buffer head so
+// SVGs keep their `image/svg+xml` type instead of being routed as XML text.
+function bufferLooksLikeSvg(buffer: Buffer): boolean {
+  const head = buffer.subarray(0, 1024).toString("utf8");
+  return /<svg[\s>]/i.test(head);
+}
+
 async function sniffMime(buffer?: Buffer): Promise<string | undefined> {
   if (!buffer) {
     return undefined;
@@ -116,7 +124,14 @@ async function sniffMime(buffer?: Buffer): Promise<string | undefined> {
     const { fileTypeFromBuffer } = await fileTypeModuleLoader.load();
     const type = await fileTypeFromBuffer(sliceMimeSniffBuffer(buffer));
     if (type?.mime) {
-      return normalizeMimeType(type.mime);
+      const normalized = normalizeMimeType(type.mime);
+      if (
+        (normalized === "application/xml" || normalized === "text/xml") &&
+        bufferLooksLikeSvg(buffer)
+      ) {
+        return "image/svg+xml";
+      }
+      return normalized;
     }
   } catch {
     // fall through to manual magic-byte sniffs
