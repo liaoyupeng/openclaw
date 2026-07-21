@@ -63,6 +63,15 @@ export const CLAUDE_CLI_CLEAR_ENV = [
   "OTEL_TRACES_EXPORTER",
 ] as const;
 
+// OpenClaw-managed `claude -p` processes exit at end_turn, so Claude Code built-ins that defer work
+// past the turn have no host to fire into and lose it silently. The subagent tool (`Task` in the
+// init tool list, `Agent` in tool_use; both names match a permission rule) defaults to
+// `run_in_background: true`, and a `Task(run_in_background:true)` rule only matches the explicit
+// argument, so the whole tool must go; `Workflow` has no foreground mode at all.
+/** Claude Code built-ins denied because their work cannot survive an OpenClaw CLI turn. */
+export const CLAUDE_CLI_DISALLOWED_TOOLS =
+  "ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Task,Agent,Workflow";
+
 const CLAUDE_LEGACY_SKIP_PERMISSIONS_ARG = "--dangerously-skip-permissions";
 const CLAUDE_PERMISSION_MODE_ARG = "--permission-mode";
 const CLAUDE_SETTING_SOURCES_ARG = "--setting-sources";

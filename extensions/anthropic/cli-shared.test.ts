@@ -11,7 +11,7 @@ import {
 } from "./cli-shared.js";
 
 const CLAUDE_CLI_DISALLOWED_TOOLS =
-  "ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor";
+  "ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Task,Agent,Workflow";
 
 function expectDefaultDisallowedTools(args: readonly string[] | undefined) {
   const disallowedIndex = args?.indexOf("--disallowedTools") ?? -1;
