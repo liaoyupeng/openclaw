@@ -22,11 +22,6 @@ const KimiSearchSchema = {
       minimum: 1,
       maximum: 10,
     },
-    country: { type: "string", description: "Not supported by Kimi." },
-    language: { type: "string", description: "Not supported by Kimi." },
-    freshness: { type: "string", description: "Not supported by Kimi." },
-    date_after: { type: "string", description: "Not supported by Kimi." },
-    date_before: { type: "string", description: "Not supported by Kimi." },
   },
 } satisfies Record<string, unknown>;
 
