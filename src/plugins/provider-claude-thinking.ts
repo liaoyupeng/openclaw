@@ -7,6 +7,7 @@ import {
   resolveClaudeFable5ModelIdentity,
   resolveClaudeModelIdentity,
   resolveClaudeMythos5ModelIdentity,
+  resolveClaudeOpus55ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeXhighEffort,
@@ -39,10 +40,19 @@ export function resolveClaudeThinkingProfile(
 ): ProviderThinkingProfile {
   const ref = { id: modelId, params };
   const canonicalModelId = resolveClaudeModelIdentity(ref);
-  if (resolveClaudeFable5ModelIdentity(ref) || resolveClaudeMythos5ModelIdentity(ref)) {
+  // Opus 5.5 rejects disabled thinking like Fable 5; Opus 5 thinks by default
+  // like Sonnet 5. Both must bypass the Opus 4.7/4.8 off-by-default branch below.
+  if (
+    resolveClaudeFable5ModelIdentity(ref) ||
+    resolveClaudeMythos5ModelIdentity(ref) ||
+    resolveClaudeOpus55ModelIdentity(ref)
+  ) {
     return CLAUDE_FABLE_5_THINKING_PROFILE;
   }
-  if (resolveClaudeSonnet5ModelIdentity(ref)) {
+  if (
+    resolveClaudeSonnet5ModelIdentity(ref) ||
+    /^claude-opus-5(?=$|[^a-z0-9])/.test(canonicalModelId)
+  ) {
     return CLAUDE_SONNET_5_THINKING_PROFILE;
   }
   if (supportsClaudeNativeXhighEffort(ref)) {

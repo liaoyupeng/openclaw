@@ -13,6 +13,7 @@ import {
   resolveClaudeSonnet5ModelIdentity,
   resolveClaudeThinkingProfile,
   requiresClaudeDefaultSampling,
+  requiresClaudeMandatoryAdaptiveThinking,
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
@@ -61,6 +62,25 @@ describe("Claude model contracts", () => {
     expect(supportsClaudeNativeMaxEffort({ id: "claude-mythos-5" })).toBe(true);
     expect(supportsClaudeNativeXhighEffort({ id: "anthropic.claude-mythos-5" })).toBe(true);
     expect(requiresClaudeDefaultSampling({ id: "claude-mythos-5" })).toBe(true);
+  });
+
+  it("classifies Claude Opus 5 and 5.5 as native-effort adaptive models", () => {
+    for (const id of ["claude-opus-5", "claude-opus-5-5", "anthropic/claude-opus-5.5"]) {
+      expect(supportsClaudeAdaptiveThinking({ id }), id).toBe(true);
+      expect(supportsClaudeNativeMaxEffort({ id }), id).toBe(true);
+      expect(supportsClaudeNativeXhighEffort({ id }), id).toBe(true);
+      expect(requiresClaudeDefaultSampling({ id }), id).toBe(true);
+    }
+    // Opus 5.5 rejects disabled thinking; Opus 5 still accepts it at effort <= high.
+    expect(requiresClaudeMandatoryAdaptiveThinking({ id: "claude-opus-5-5" })).toBe(true);
+    expect(requiresClaudeMandatoryAdaptiveThinking({ id: "claude-opus-5" })).toBe(false);
+    expect(supportsClaudeAdaptiveThinking({ id: "claude-opus-50" })).toBe(false);
+    expect(requiresClaudeMandatoryAdaptiveThinking({ id: "claude-opus-5-50" })).toBe(false);
+    expect(resolveClaudeThinkingProfile("claude-opus-5-5")).toMatchObject({
+      defaultLevel: "high",
+      preserveWhenCatalogReasoningFalse: true,
+    });
+    expect(resolveClaudeThinkingProfile("claude-opus-5").defaultLevel).toBe("high");
   });
 
   it("does not classify later numeric model versions as supported aliases", () => {

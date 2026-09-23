@@ -4,6 +4,7 @@ import {
   requiresClaudeMandatoryAdaptiveThinking,
   resolveClaudeFable5ModelIdentity,
   resolveClaudeMythos5ModelIdentity,
+  resolveClaudeOpus55ModelIdentity,
   resolveClaudeSonnet5ModelIdentity,
 } from "@openclaw/llm-core";
 import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
@@ -72,6 +73,7 @@ export function usesClaudeStreamingRefusalContract(model: {
   return (
     resolveClaudeFable5ModelIdentity(model) !== undefined ||
     resolveClaudeMythos5ModelIdentity(model) !== undefined ||
+    resolveClaudeOpus55ModelIdentity(model) !== undefined ||
     resolveClaudeSonnet5ModelIdentity(model) !== undefined
   );
 }
@@ -159,6 +161,10 @@ function resolveReplayModelBoundIdentity(ref: ReplayModelRef): string | undefine
   const mythosIdentity = resolveClaudeMythos5ModelIdentity(modelRef);
   if (mythosIdentity) {
     return `mythos:${mythosIdentity}`;
+  }
+  const opusIdentity = resolveClaudeOpus55ModelIdentity(modelRef);
+  if (opusIdentity) {
+    return `opus:${opusIdentity}`;
   }
   const sonnetIdentity = resolveClaudeSonnet5ModelIdentity(modelRef);
   return sonnetIdentity ? `sonnet:${sonnetIdentity}` : undefined;

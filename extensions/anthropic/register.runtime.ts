@@ -402,7 +402,7 @@ function isAnthropic128kOutputModel(modelId: string): boolean {
   if (isAnthropicMandatoryClaude5Model(modelId) || isAnthropicSonnet5Model(modelId)) {
     return true;
   }
-  return /^claude-opus-4-8(?=$|[^a-z0-9])/.test(resolveClaudeModelIdentity({ id: modelId }));
+  return /^claude-opus-(?:5|4-8)(?=$|[^a-z0-9])/.test(resolveClaudeModelIdentity({ id: modelId }));
 }
 
 function isAnthropicLargeImageModel(modelId: string): boolean {

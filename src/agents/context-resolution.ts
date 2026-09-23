@@ -32,6 +32,7 @@ export type ContextTokenResolutionParams = {
 };
 
 const ANTHROPIC_GA_1M_MODEL_PREFIXES = [
+  "claude-opus-5",
   "claude-opus-4-8",
   "claude-opus-4.8",
   "claude-opus-4-6",

@@ -185,7 +185,7 @@ OpenClaw release:
   </Tab>
 </Tabs>
 
-## Thinking defaults (Claude Sonnet 5, Mythos 5, Fable 5, 4.8, and 4.6)
+## Thinking defaults (Claude Sonnet 5, Opus 5.5, Opus 5, Mythos 5, Fable 5, 4.8, and 4.6)
 
 `anthropic/claude-sonnet-5` uses adaptive thinking at `high` effort by default.
 Use `/think off` to disable thinking, or `/think xhigh|max` for the model's
@@ -194,6 +194,12 @@ sampling parameters, assistant prefills, and Priority Tier for Sonnet 5 because
 Anthropic does not support those request features on this model.
 The catalog uses Anthropic's introductory `$2/$10` input/output pricing through
 August 31, 2026; standard `$3/$15` pricing begins September 1, 2026.
+
+`anthropic/claude-opus-5-5` always uses adaptive thinking and defaults to `high`
+effort. Anthropic rejects disabled thinking and forced tool choice for this model,
+so `/think off` and `/think minimal` map to `low` effort and forced tool choice
+is sent as `auto`. `anthropic/claude-opus-5` also thinks by default at `high`
+effort. Both omit custom sampling parameters and support `/think xhigh|max`.
 
 `anthropic/claude-fable-5` always uses adaptive thinking and defaults to `high`
 effort. Anthropic does not allow thinking to be disabled for this model, so
