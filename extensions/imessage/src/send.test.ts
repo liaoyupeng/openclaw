@@ -1337,3 +1337,65 @@ describe("sendMessageIMessage CLI stream errors", () => {
     expect(kill).toHaveBeenCalledWith("SIGKILL");
   });
 });
+
+describe("sendMessageIMessage remote attachments", () => {
+  const REMOTE_CFG = {
+    channels: {
+      imessage: {
+        remoteHost: "bot@messages-mac",
+        accounts: { default: {} },
+      },
+    },
+  };
+
+  it("stages media on the Messages Mac before handing the path to imsg", async () => {
+    const sendParams: Array<Record<string, unknown>> = [];
+    const client = {
+      request: vi.fn(async (_method: string, params: Record<string, unknown>) => {
+        sendParams.push(params);
+        return { guid: "p:0/remote-media" };
+      }),
+      stop: vi.fn(async () => {}),
+    } as unknown as IMessageRpcClient;
+    const stageRemoteAttachmentImpl = vi.fn(async () => "/tmp/openclaw-imessage-x-image.png");
+
+    await sendMessageIMessage("chat_id:42", "caption", {
+      config: REMOTE_CFG,
+      client,
+      replyToId: "reply-1",
+      mediaUrl: "/home/bot/.openclaw/media/image.png",
+      resolveAttachmentImpl: async () => ({
+        path: "/home/bot/.openclaw/media/image.png",
+        contentType: "image/png",
+      }),
+      stageRemoteAttachmentImpl,
+    });
+
+    expect(stageRemoteAttachmentImpl).toHaveBeenCalledWith({
+      remoteHost: "bot@messages-mac",
+      localPath: "/home/bot/.openclaw/media/image.png",
+    });
+    expect(sendParams[0]).toMatchObject({ file: "/tmp/openclaw-imessage-x-image.png" });
+  });
+
+  it("keeps the local path when imsg runs on this host", async () => {
+    const stageRemoteAttachmentImpl = vi.fn(async () => "/tmp/unused.png");
+    const client = createClient({ guid: "p:0/local-media" });
+
+    await sendMessageIMessage("chat_id:42", "caption", {
+      config: IMESSAGE_TEST_CFG,
+      client,
+      replyToId: "reply-1",
+      mediaUrl: "/tmp/image.png",
+      resolveAttachmentImpl: async () => ({ path: "/tmp/image.png", contentType: "image/png" }),
+      stageRemoteAttachmentImpl,
+    });
+
+    expect(stageRemoteAttachmentImpl).not.toHaveBeenCalled();
+    expect(getClientMocks(client).request).toHaveBeenCalledWith(
+      "send",
+      expect.objectContaining({ file: "/tmp/image.png" }),
+      expect.any(Object),
+    );
+  });
+});

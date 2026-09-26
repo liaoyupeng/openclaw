@@ -12,6 +12,7 @@ import {
   type MessageReceiptSourceResult,
 } from "openclaw/plugin-sdk/channel-outbound";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeScpRemoteHost } from "openclaw/plugin-sdk/host-runtime";
 import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import { kindFromMime, resolveOutboundAttachmentFromUrl } from "openclaw/plugin-sdk/media-runtime";
 import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
@@ -38,6 +39,7 @@ import {
   forgetPersistedIMessageEchoKey,
   rememberPersistedIMessageEcho,
 } from "./monitor/persisted-echo-cache.js";
+import { stageIMessageAttachmentOnRemote } from "./remote-outbound-media.js";
 import {
   formatIMessageChatTarget,
   type IMessageService,
@@ -76,6 +78,7 @@ type IMessageSendOpts = {
       readFile?: (filePath: string) => Promise<Buffer>;
     },
   ) => Promise<{ path: string; contentType?: string }>;
+  stageRemoteAttachmentImpl?: typeof stageIMessageAttachmentOnRemote;
   createClient?: (params: { cliPath: string; dbPath?: string }) => Promise<IMessageRpcClient>;
   runCliJson?: (args: readonly string[]) => Promise<Record<string, unknown>>;
   resolveMessageGuidImpl?: (params: {
@@ -934,6 +937,13 @@ export async function sendMessageIMessage(
     });
     filePath = resolved.path;
     mediaContentType = resolved.contentType ?? undefined;
+    // A remote SSH cliPath runs imsg on the Messages Mac, which cannot open
+    // gateway-local paths; both send-attachment and RPC `file` need the Mac copy.
+    const remoteHost = normalizeScpRemoteHost(account.config.remoteHost);
+    if (remoteHost) {
+      const stageRemote = opts.stageRemoteAttachmentImpl ?? stageIMessageAttachmentOnRemote;
+      filePath = await stageRemote({ remoteHost, localPath: filePath });
+    }
   }
 
   if (!message.trim() && !filePath) {
